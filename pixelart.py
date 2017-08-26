@@ -19,7 +19,9 @@ IGNORE_REGEX_SOURCES = ['sapling.*', 'wheat_stage.*', '.*grass.*', 'water.*', 'r
                  'mushroom_brown', 'web', 'tnt_top', 'cactus.*', 'lava.*', 'chorus_plant', '.*torch_.*', 'chorus_.*',
                  'pumpkin_top', 'pumpkin_bottom', 'lever', 'rail_.*', 'jukebox_top', 'trapdoor', 'stone_slab_top',
                  'ladder', 'iron_bars', 'brewing_stand', 'crafting_table_.*', 'bookshelf', 'glazed_terracotta_brown',
-                 'redstone_lamp_on', 'furnace_front_on', 'quartz_ore', 'cauldron.*', 'debug.*', 'glass', 'end_rod']
+                 'redstone_lamp_on', 'furnace_front_on', 'quartz_ore', 'cauldron.*', 'debug.*', 'glass', 'end_rod',
+                 'structure_block.*', 'mycelium.*', 'grass.*', 'itemframe.*', 'furnace_top',
+                 'iron_trapdoor']
 PATH_FORMATS = [str, bytes, os.PathLike, int]
 
 class Application(tk.Frame):
