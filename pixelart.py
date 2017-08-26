@@ -38,9 +38,6 @@ class Application(tk.Frame):
     def create_widgets(self):
 
         # First create a description label
-        #self.description = tk.Label(self, 
-                #text="kapurai's pixelart helper")
-        #self.description.pack(side='top')
 
         # Status bar
         self.statusbar = tk.Label(self, relief='sunken', text='Not ready',
@@ -93,7 +90,6 @@ class Application(tk.Frame):
 
     def process(self):
 
-        #out_path = '/mnt/two/projects/pixelart/output.png'
         out_path = filedialog.asksaveasfilename()
         if out_path is None or not os.path.isfile(out_path):
             return
@@ -214,7 +210,6 @@ class Application(tk.Frame):
     def pick_image(self):
 
         self.image_path = None
-        #self.image_path = filedialog.askopenfile(filetypes=PIL_FORMATS)
         self.image_path = filedialog.askopenfilename()
 
         if self.image_path is None or type(self.image_path) not in PATH_FORMATS or \
