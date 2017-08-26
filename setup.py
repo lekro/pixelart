@@ -1,0 +1,39 @@
+"""Setup module for pixelart helper
+"""
+
+from setuptools import setup, find_packages
+from codecs import open
+from os import path
+
+here = path.abspath(path.dirname(__file__))
+
+# Read README
+with open(path.join(here, 'readme.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
+setup(
+        name='pixelart-helper',
+        version='0.0.1',
+        description='Match images to minecraft textures',
+        long_description=long_description,
+        url='https://github.com/lekro/pixelart-helper',
+        author='lekro',
+        author_email='kapuraya@gmail.com',
+        license='MIT',
+        classifiers=[
+            'Development Status :: 3 - Alpha',
+            'Intended Audience :: End Users/Desktop',
+            'Topic :: Games/Entertainment',
+            'License :: OSI Approved :: MIT License',
+            'Programming Language :: Python :: 3'
+        ],
+        keywords=['pixel', 'art', 'pixelart', 'minecraft'],
+        packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+        install_requires=['numpy', 'scipy', 'pillow'],
+        python_requires='>=3',
+        entry_points={
+            'console_scripts': [
+                'pixelart=pixelart:main',
+            ],
+        }
+)

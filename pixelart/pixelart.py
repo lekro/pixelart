@@ -244,12 +244,15 @@ class Application(tk.Frame):
 
         self.set_status()
 
+def main():
 
-ignore_regexes = [re.compile(x) for x in IGNORE_REGEX_SOURCES]
-root = tk.Tk()
-root.wm_title("kapurai's pixelart helper")
-app = Application(master=root)
-app.mainloop()
+    ignore_regexes = [re.compile(x) for x in IGNORE_REGEX_SOURCES]
+    root = tk.Tk()
+    root.wm_title("kapurai's pixelart helper")
+    app = Application(master=root)
+    app.mainloop()
 
+if __name__ == '__main__':
+    main()
 
 
