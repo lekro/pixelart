@@ -33,13 +33,16 @@ Windows
 Getting your Minecraft textures
 ====
 
-- Obtain a copy of the latest minecraft jar and unzip it in a new
+* Obtain a copy of the latest minecraft jar and unzip it in a new
   directory (it will also give you a bunch of junk you don't really need)
-  + On Windows, this should be inside ``%appdata%/.minecraft/versions``.
-  + On Linux, I'm guessing it's under ``~/.minecraft/versions``.
-  + If using MultiMC, it may be inside the MultiMC versions directory
+
+  - On Windows, this should be inside ``%appdata%/.minecraft/versions``.
+
+  - On Linux, I'm guessing it's under ``~/.minecraft/versions``.
+
+  - If using MultiMC, it may be inside the MultiMC versions directory
     instead.
-- Inside the extracted data, you should find the actual minecraft textures
+* Inside the extracted data, you should find the actual minecraft textures
   in ``assets/minecraft/textures/blocks/``. You can select this directory
   in the GUI.
 
