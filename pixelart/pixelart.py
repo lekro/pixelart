@@ -21,7 +21,15 @@ IGNORE_REGEX_SOURCES = ['sapling.*', 'wheat_stage.*', '.*grass.*', 'water.*', 'r
                  'ladder', 'iron_bars', 'brewing_stand', 'crafting_table_.*', 'bookshelf', 'glazed_terracotta_brown',
                  'redstone_lamp_on', 'furnace_front_on', 'quartz_ore', 'cauldron.*', 'debug.*', 'glass', 'end_rod',
                  'structure_block.*', 'mycelium.*', 'grass.*', 'itemframe.*', 'furnace_top',
-                 'iron_trapdoor']
+                 'iron_trapdoor', '.*_podzol_.*', 'concrete_powder.*',
+                 'sand', 'red_sand', 'gravel', 'dispenser_.*', 'dropper_.*',
+                 'observer_.*', 'frosted_ice_.*', 'furnace.*', 
+                 'glazed_terracotta_.*[abcfghjmqstuvxz]+.*',
+                 'ice.*', 'melon_.*', 'pumpkin_.*', 'mushroom.*',
+                 'piston_.*', 'beacon',
+                 'quartz_block_(chiseled)?(lines)?(bottom)?(top)?.*',
+                 'purpur_pillar.*', 'slime', 'tnt_.*', 'mob_spawner',
+                 'jukebox_top']
 PATH_FORMATS = [str, bytes, os.PathLike, int]
 
 class Application(tk.Frame):
@@ -155,7 +163,7 @@ class Application(tk.Frame):
         self.texture_dir = filedialog.askdirectory()
         if self.texture_dir is None or type(self.texture_dir) not in PATH_FORMATS or \
                 not os.path.isdir(self.texture_dir):
-            self.texture_dir = None
+            self.texture_failure()
             self.set_status()
             return
 
@@ -206,10 +214,7 @@ class Application(tk.Frame):
                             self.texture_height)
             self.texture_status['fg'] = 'green'
         else:
-            self.texture_status['text'] = NO_TEXTURES_MESSAGE
-            self.texture_status['fg'] = 'red'
-            self.texture_dir = None
-            self.set_status()
+            self.texture_failure()
 
         self.set_status()
 
@@ -245,6 +250,18 @@ class Application(tk.Frame):
             self.input_status['text'] = message
         self.input_status['fg'] = 'red'
         self.image_path = None
+
+        self.set_status()
+
+    def texture_failure(self, message=None):
+
+        if message is None:
+            self.texture_status['text'] = NO_TEXTURES_MESSAGE
+        else:
+            self.texture_status['text'] = message
+
+        self.texture_status['fg'] = 'red'
+        self.texture_dir = None
 
         self.set_status()
 
