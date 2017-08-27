@@ -145,7 +145,7 @@ class Application(tk.Frame):
     def process(self):
 
         out_path = filedialog.asksaveasfilename()
-        if out_path is None or not os.path.isfile(out_path):
+        if out_path is None or os.path.isdir(out_path):
             return
 
         self.statusbar['fg'] = 'black'
