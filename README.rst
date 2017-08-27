@@ -1,10 +1,10 @@
-# pixelart-helper
+pixelart-helper
 
 A simple pixel art helper for Minecraft, written in Python,
 with a simple `tkinter` GUI.
 
 
-## Dependencies
+Dependencies:
 
 - Python 3
 - Tk
