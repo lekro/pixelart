@@ -29,9 +29,9 @@ Windows
 - Use ``pip`` to install, with the command ``pip install pixelart-helper``
 - To use the script, use the command ``pixelart``
 
-====
+===============================
 Getting your Minecraft textures
-====
+===============================
 
 * Obtain a copy of the latest minecraft jar and unzip it in a new
   directory (it will also give you a bunch of junk you don't really need)
