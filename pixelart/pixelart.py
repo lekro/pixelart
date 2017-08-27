@@ -82,6 +82,27 @@ class Application(tk.Frame):
                 fg='red')
         self.input_status.grid(row=1, column=1)
 
+        self.scaling_frame = tk.Frame(self.cont)
+        self.scaling_frame.grid(row=2, column=0)
+
+        self.scaling_x = tk.Entry(self.scaling_frame)
+        self.scaling_x.config(width=5)
+        self.scaling_x.pack(side='left')
+
+        self.scaling_by = tk.Label(self.scaling_frame, text='x')
+        self.scaling_by.pack(side='left')
+
+        self.scaling_y = tk.Entry(self.scaling_frame)
+        self.scaling_y.config(width=5)
+        self.scaling_y.pack(side='left')
+
+        self.scaling_button = tk.Button(self.scaling_frame, text='Scale',
+                command=self.perform_scaling)
+        self.scaling_button.pack(side='right')
+
+        self.scaling_status = tk.Label(self.cont, text='')
+        self.scaling_status.grid(row=2, column=1)
+
         self.quit_button = tk.Button(self, text='Quit', fg='red',
                 command=self.exit_now)
         self.quit_button.pack(side='right', padx=5, pady=5)
@@ -90,6 +111,25 @@ class Application(tk.Frame):
         self.start_button = tk.Button(self, text='Start!', fg='green',
                 state='disabled', command=self.process_thread)
         self.start_button.pack(side='right', padx=5, pady=5)
+
+    def perform_scaling(self):
+
+        x = self.scaling_x.get()
+        y = self.scaling_y.get()
+
+        try:
+            x = int(x)
+            y = int(y)
+        except:
+            self.scaling_status['text'] = 'Invalid scaling values!'
+            self.scaling_status['fg'] = 'red'
+            return
+
+        self.image = self.image.resize((x, y)).convert('RGB')
+
+        self.scaling_status['text'] = 'Scaled to %dx%d' % (x, y)
+        self.scaling_status['fg'] = 'green'
+
 
     def process_thread(self):
 
@@ -133,7 +173,12 @@ class Application(tk.Frame):
 
         w = self.texture_width
         h = self.texture_height
-        final = np.zeros((image.shape[0] * w, image.shape[1] * h, 3))
+        try:
+            final = np.zeros((image.shape[0] * w, image.shape[1] * h, 3))
+        except MemoryError:
+            self.statusbar['text'] = 'Out of memory! Please close other \
+                    things!'
+            return
 
         for i, row in enumerate(keys[neighbors]):
             for j, key in enumerate(row):
