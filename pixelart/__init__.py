@@ -1,5 +1,5 @@
 
-import pixelart
+from pixelart import pixelart as pi
 
 def main():
-    pixelart.main()
+    pi.main()

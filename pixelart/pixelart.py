@@ -26,10 +26,14 @@ PATH_FORMATS = [str, bytes, os.PathLike, int]
 
 class Application(tk.Frame):
 
-    def __init__(self, master=None):
+    def __init__(self, master=None, ignore=None):
 
         super().__init__(master)
         self.pack(fill='both', expand=1)
+
+        self.ignore_regexes = ignore
+        if self.ignore_regexes is None:
+            self.ignore_regexes = []
 
         self.texture_dir = None
         self.image_path = None
@@ -87,7 +91,7 @@ class Application(tk.Frame):
 
     def exit_now(self):
 
-        root.destroy()
+        self.master.destroy()
         sys.exit()
 
     def process(self):
@@ -169,7 +173,7 @@ class Application(tk.Frame):
 
             # Ignore textures which match any ignore regexes
             skip = False
-            for regex in ignore_regexes:
+            for regex in self.ignore_regexes:
                 if regex.match(name) is not None: 
                     skip = True
                     break
@@ -249,7 +253,7 @@ def main():
     ignore_regexes = [re.compile(x) for x in IGNORE_REGEX_SOURCES]
     root = tk.Tk()
     root.wm_title("kapurai's pixelart helper")
-    app = Application(master=root)
+    app = Application(master=root, ignore=ignore_regexes)
     app.mainloop()
 
 if __name__ == '__main__':
