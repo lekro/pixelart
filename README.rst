@@ -16,6 +16,7 @@ Linux
 - Install Python 3
 - Install ``numpy``, ``scipy``, and ``Pillow``. 
 - Use ``pip`` to install, e.g. ``pip install pixelart-helper``
+- Use the command ``pixelart`` to launch the GUI.
 
 -------
 Windows
@@ -26,6 +27,7 @@ Windows
 - Install ``numpy``, ``scipy``, and ``Pillow``, by executing the command
   ``conda install numpy scipy pillow``
 - Use ``pip`` to install, with the command ``pip install pixelart-helper``
+- To use the script, use the command ``pixelart``
 
 
 =============
