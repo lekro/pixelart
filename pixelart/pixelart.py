@@ -125,7 +125,8 @@ class Application(tk.Frame):
             self.scaling_status['fg'] = 'red'
             return
 
-        self.image = self.image.resize((x, y)).convert('RGB')
+        self.image = self.image.resize((x, y),
+                resample=Image.BICUBIC).convert('RGB')
 
         self.scaling_status['text'] = 'Scaled to %dx%d' % (x, y)
         self.scaling_status['fg'] = 'green'

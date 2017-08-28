@@ -13,7 +13,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
         name='pixelart-helper',
-        version='0.0.4',
+        version='0.0.5',
         description='Match images to minecraft textures',
         long_description=long_description,
         url='https://github.com/lekro/pixelart-helper',
