@@ -9,8 +9,6 @@ from threading import Thread
 
 NO_TEXTURES_MESSAGE = 'No textures loaded!'
 NO_INPUT_MESSAGE = 'No input image!'
-PIL_FORMATS = (("PIL images", 
-    "*.png;*.jpg;*.jpeg;*.bmp;*.eps;*.gif;*.ico;*.pcx;*.tiff;*.psd"),)
 IGNORE_REGEX_SOURCES = ['sapling.*', 'wheat_stage.*', '.*grass.*', 'water.*', 'redstone_dust.*', 'repeater.*',
                  'dragon_egg', 'cake.*', 'fern', '.*_stage_.*', 'flower.*', 'shulker.*', 'door.*',
                  'enchanting.*', 'double_plant.*', '.*_layer_.*', 'deadbush', 'vine', 'hopper.*', 'portal',
@@ -149,6 +147,15 @@ class Application(tk.Frame):
         if out_path is None or os.path.isdir(out_path):
             return
 
+        # Try to write a dummy file to see if this is a valid format...
+        try:
+            Image.fromarray(np.array([[[0,0,0]]], dtype='uint8')).save(out_path)
+        except ValueError:
+            # Complain a lot
+            self.statusbar['text'] = 'Failure: unknown output format. Try adding .png at the end.'
+            self.statusbar['fg'] = 'red'
+            return
+
         self.statusbar['fg'] = 'black'
         self.statusbar['text'] = 'Creating KDTree for nearest neighbors matching...'
 
@@ -280,6 +287,9 @@ class Application(tk.Frame):
             self.image = Image.open(self.image_path)
         except IOError:
             self.image_failure(message="Couldn't load image!")
+            return
+        except ValueError:
+            self.image_failure(message="Unknown image format!")
             return
         self.scaled_image = self.image
 
