@@ -125,7 +125,7 @@ class Application(tk.Frame):
             self.scaling_status['fg'] = 'red'
             return
 
-        self.image = self.image.resize((x, y),
+        self.scaled_image = self.image.resize((x, y),
                 resample=Image.BICUBIC).convert('RGB')
 
         self.scaling_status['text'] = 'Scaled to %dx%d' % (x, y)
@@ -156,7 +156,7 @@ class Application(tk.Frame):
         keys = np.array(list(self.colors.keys()))
 
         kdtree = KDTree(vals)
-        image = np.array(self.image)[...,0:3]
+        image = np.array(self.scaled_image)[...,0:3]
 
         rows = image.shape[0]
 
@@ -281,10 +281,12 @@ class Application(tk.Frame):
         except IOError:
             self.image_failure(message="Couldn't load image!")
             return
+        self.scaled_image = self.image
 
         self.input_status['text'] = "Loaded %sx%s image" %\
                 (self.image.width, self.image.height)
         self.input_status['fg'] = 'green'
+        self.scaling_status['text'] = ''
 
         self.set_status()
 
@@ -296,6 +298,7 @@ class Application(tk.Frame):
             self.input_status['text'] = message
         self.input_status['fg'] = 'red'
         self.image_path = None
+        self.scaling_status['text'] = ''
 
         self.set_status()
 
