@@ -14,7 +14,7 @@ Linux
 -----
 
 - Install Python 3
-- Install ``numpy``, ``scipy``, and ``Pillow``. 
+- Install ``numpy`` and ``Pillow``. 
 - Use ``pip`` to install, e.g. ``pip install pixelart-helper``
 - Use the command ``pixelart`` to launch the GUI.
 
@@ -24,8 +24,8 @@ Windows
 
 - Install Python 3 with miniconda: https://conda.io/miniconda.html
 - Go to the start menu and open the *Anaconda Prompt*
-- Install ``numpy``, ``scipy``, and ``Pillow``, by executing the command
-  ``conda install numpy scipy pillow``
+- Install ``numpy`` and ``Pillow``, by executing the command
+  ``conda install numpy pillow``
 - Use ``pip`` to install, with the command ``pip install pixelart-helper``
 - To use the script, use the command ``pixelart``
 
@@ -53,5 +53,5 @@ Dependencies:
 - Python 3
 - Tk
 - numpy
-- scipy
 - pillow
+- scipy *(optional, for faster nearest neighbors matching)*

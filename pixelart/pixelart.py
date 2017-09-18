@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageTk
 import numpy as np
 import os, re, gc
 import sys
@@ -36,6 +36,48 @@ IGNORE_REGEX_SOURCES = ['sapling.*', 'wheat_stage.*', '.*grass.*', 'water.*', 'r
                  'purpur_pillar.*', 'slime', 'tnt_.*', 'mob_spawner',
                  'jukebox_top']
 PATH_FORMATS = [str, bytes, os.PathLike, int]
+
+class BlockReportDialog(tk.Toplevel):
+
+    def __init__(self, parent, textures, cols=3):
+        '''textures: dict of str -> (TkImage, int)'''
+
+        tk.Toplevel.__init__(self, parent)
+        self.transient(parent)
+        self.title("Block report")
+        self.parent = parent
+        
+        body = tk.Frame(self)
+        
+        self.grab_set()
+
+        self.labels = []
+        for i, name in enumerate(sorted(textures.keys())):
+            pic, count = textures[name]
+            label = tk.Label(body,
+                    image=pic,
+                    text=' %dx %s' % (count, name),
+                    compound='left')
+            label.grid(row=int(i/cols),
+                    column=int(i%cols),
+                    sticky='w')
+            self.labels.append(label)
+
+        bottom_frame = tk.Frame(self)
+        self.bind("<Escape>", self.done)
+        self.bind("<Return>", self.done)
+        self.protocol("WM_DELETE_WINDOW", self.done)
+
+        done_button = tk.Button(bottom_frame, text='Done',
+                command=self.done)
+        done_button.pack(side='right')
+        body.pack(padx=5, pady=5, side='top')
+        bottom_frame.pack(side='bottom')
+
+
+    def done(self, event=None):
+        self.parent.focus_set()
+        self.destroy()
 
 class Application(tk.Frame):
 
@@ -91,6 +133,7 @@ class Application(tk.Frame):
         self.scaling_frame.grid(row=2, column=0)
 
         self.scaling_x = tk.Entry(self.scaling_frame)
+        self.scaling_x.bind('<Return>', self.perform_scaling)
         self.scaling_x.config(width=5)
         self.scaling_x.pack(side='left')
 
@@ -98,6 +141,7 @@ class Application(tk.Frame):
         self.scaling_by.pack(side='left')
 
         self.scaling_y = tk.Entry(self.scaling_frame)
+        self.scaling_y.bind('<Return>', self.perform_scaling)
         self.scaling_y.config(width=5)
         self.scaling_y.pack(side='left')
 
@@ -117,7 +161,7 @@ class Application(tk.Frame):
                 state='disabled', command=self.process_thread)
         self.start_button.pack(side='right', padx=5, pady=5)
 
-    def perform_scaling(self):
+    def perform_scaling(self, event=None):
 
         x = self.scaling_x.get()
         y = self.scaling_y.get()
@@ -147,6 +191,19 @@ class Application(tk.Frame):
 
         self.master.destroy()
         sys.exit()
+
+    def show_block_report(self, counts):
+        '''counts: map of str -> int'''
+
+        report_pics = {}
+        for name in counts.keys():
+            report_pics[name] = (
+                    ImageTk.PhotoImage(self.pics[name].copy()),
+                    counts[name]
+            )
+
+        BlockReportDialog(self, report_pics)
+
 
     def process(self):
 
@@ -215,12 +272,16 @@ class Application(tk.Frame):
 
         for i, row in enumerate(keys[neighbors]):
             for j, key in enumerate(row):
-                final[i*w:i*w+w, j*h:j*h+h] = np.array(self.pics[key])
+                final[i*w:i*w+w, j*h:j*h+h] = np.array(self.pics[key].copy())
         final = final.astype('uint8')
         output = Image.fromarray(final)
         output.save(out_path)
 
         self.statusbar['text'] = 'Image generation successful!'
+
+        # Now we show the block report
+        unique, counts = np.unique(neighbors, return_counts=True)
+        self.show_block_report(dict(zip(keys[unique], counts)))
 
     def get_status(self):
         return self.texture_dir is None or self.image_path is None
