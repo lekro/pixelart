@@ -13,7 +13,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
         name='pixelart-helper',
-        version='0.0.5',
+        version='0.0.6',
         description='Match images to minecraft textures',
         long_description=long_description,
         url='https://github.com/lekro/pixelart-helper',
@@ -29,7 +29,10 @@ setup(
         ],
         keywords=['pixel', 'art', 'pixelart', 'minecraft'],
         packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-        install_requires=['numpy', 'scipy', 'Pillow'],
+        install_requires=['numpy', 'Pillow'],
+        extras_require={
+            'faster nearest neighbors matching': ['scipy']
+        },
         python_requires='>=3',
         entry_points={
             'console_scripts': [

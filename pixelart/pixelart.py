@@ -1,11 +1,18 @@
 from PIL import Image
 import numpy as np
-from scipy.spatial import KDTree
 import os, re, gc
 import sys
 import tkinter as tk
 import tkinter.filedialog as filedialog
 from threading import Thread
+
+# See if we can get cKDTree...
+scipy_found = False
+try:
+    from scipy.spatial import cKDTree
+    scipy_found = True
+except ImportError:
+    pass
 
 NO_TEXTURES_MESSAGE = 'No textures loaded!'
 NO_INPUT_MESSAGE = 'No input image!'
@@ -157,19 +164,37 @@ class Application(tk.Frame):
             return
 
         self.statusbar['fg'] = 'black'
-        self.statusbar['text'] = 'Creating KDTree for nearest neighbors matching...'
+        self.statusbar['text'] = 'Creating cKDTree for nearest neighbors matching...'
 
         vals = np.array(list(self.colors.values()))
         keys = np.array(list(self.colors.keys()))
 
-        kdtree = KDTree(vals)
+        # Only make a cKDTree if possible.
+        if scipy_found:
+            kdtree = cKDTree(vals)
         image = np.array(self.scaled_image)[...,0:3]
 
         rows = image.shape[0]
 
         neighbors = np.zeros(image.shape[0:2])
         for i, row in enumerate(image):
-            _, neigh = kdtree.query(row, k=1)
+            # If we have the kdtree...
+            if scipy_found:
+                _, neigh = kdtree.query(row, k=1)
+            else:
+                # Since we don't have the kdtree, brute force!
+                # We don't have to take the norms actually,
+                # the square is fine since we're just finding
+                # the minimum distance.
+                neigh = np.zeros(row.shape[0])
+                for j, pix in enumerate(row):
+                    norm_squares = np.zeros(vals.shape[0])
+                    for k, color in enumerate(vals):
+                        norm_squares[k] = (color[0]-pix[0])**2
+                        norm_squares[k] += (color[1]-pix[1])**2
+                        norm_squares[k] += (color[2]-pix[2])**2
+                    neigh[j] = np.argmin(norm_squares)
+
             neighbors[i] = neigh.astype('uint8')
             self.statusbar['text'] = 'Finding nearest neighbors (%d of %d complete)...' % (i+1, rows)
 
