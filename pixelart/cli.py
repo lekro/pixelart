@@ -89,6 +89,7 @@ def cli_process():
             minkowski=args.p, image_scaling=args.scaling,
             texture_dimension=args.texture_dimension,
             logging_handler=StreamHandler(sys.stdout))
+    processor.process()
 
 if __name__ == '__main__':
     cli_process()
