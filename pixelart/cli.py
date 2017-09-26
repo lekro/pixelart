@@ -1,12 +1,16 @@
 import argparse
 import sys
 import logging
+from logging import StreamHandler
+
+# Import from this package
+from processing import PixelartProcessor
 
 def valid_scale(string):
     if 'x' not in string:
         msg = "Invalid scaling option %s" % string
         raise argparse.ArgumentTypeError(msg)
-    w, h = a.split('x')
+    w, h = string.split('x')
     w = int(w)
     h = int(h)
     if w < 1 or h < 1:
@@ -37,7 +41,7 @@ def cli_process():
                                 specifies Manhattan distance. Any value\
                                 from 0 < p < infinity may be used.\
                                 (default: %(default)s)')
-    parser.add_argument('-c', '--color-space', dest='space', type=str,
+    parser.add_argument('-c', '--color-space', dest='colorspace', type=str,
                         choices=['RGB', 'HSV', 'YCbCr', 'LAB'], 
                         default='RGB',
                         help='Color space in which nearest neighbors are\
@@ -55,6 +59,18 @@ def cli_process():
                                 contain numbers and types of blocks\
                                 (or textures) required to make the\
                                 pixelart. (default: %(default)s)')
+    parser.add_argument('-s', '--scaling', dest='scaling',
+                        type=valid_scale,
+                        help='Scaling to apply to input image.\
+                                Must be in format MxN, where both\
+                                M and N are positive integers.')
+    parser.add_argument('-t', '--texture-dimension',
+                        dest='texture_dimension', type=valid_scale,
+                        help='Dimensions to expect when loading\
+                                textures. All textures not of\
+                                this dimension will be ignored.\
+                                Must be in format MxN, where both\
+                                M and N are positive integers.')
     parser.add_argument('-v', '--verbose', dest='log_level',
                         action='store_const',
                         const=logging.DEBUG, default=logging.INFO,
@@ -66,7 +82,13 @@ def cli_process():
 
     # Actually process arguments
     args = parser.parse_args(sys.argv[1:])
-    print(args)
+    
+    # Instantiate PixelartProcessor
+    processor = PixelartProcessor(args.textures, args.input, args.output,
+            colorspace=args.colorspace, interp=args.interp,
+            minkowski=args.p, image_scaling=args.scaling,
+            texture_dimension=args.texture_dimension,
+            logging_handler=StreamHandler(sys.stdout))
 
 if __name__ == '__main__':
     cli_process()
