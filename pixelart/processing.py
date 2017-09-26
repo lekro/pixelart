@@ -22,8 +22,8 @@ class PixelartProcessor:
 
     def __init__(self, textures_path, image_path, output_path,
             colorspace='RGB', interp='lanczos', minkowski=2,
-            image_scaling=None, texture_dimension=None,
-            logging_handler=None):
+            image_scaling=None, texture_dimension=(16,16),
+            logging_handler=None, logging_level=logging.INFO):
 
         self.textures_path = textures_path
         self.image_path = image_path
@@ -36,6 +36,7 @@ class PixelartProcessor:
         
         # Set up logging.
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging_level)
         if logging_handler is None:
             self.logger.addHandler(logging.NullHandler())
         else:
@@ -66,15 +67,21 @@ class PixelartProcessor:
         for fi in os.listdir(self.textures_path):
             # TODO Perform filtering on names of files
             # TODO Get name of texture from file name
+            name, _ = os.path.splitext(fi)
 
             try:
                 texture = Image.open(os.path.join(self.textures_path, fi))
+                # And if we can't read it, just silently fail.
             except ValueError:
+                continue
+            except OSError:
+                continue
+            except IOError:
                 continue
 
             # Now we know this is a valid texture.
             # Check to make sure its shape matches the expected shape, if any.
-            if texture_dimension is not None:
+            if self.texture_dimension is not None:
                 if not texture.size == self.texture_dimension:
                     continue
             
@@ -84,16 +91,20 @@ class PixelartProcessor:
             self.colors[name] = np.array(texture.resize((1,1),
                 resample=self.interp).convert(self.colorspace)\
                         .getpixel((0,0)))
-            self.pics[name] = texture
+            self.textures[name] = texture.convert('RGB')
 
         if len(self.colors) == 0:
             self.logger.critical("No loadable textures found!")
             return False
+
+        self.logger.debug("Loaded %d textures!" % len(self.colors))
         return True
 
     def load_image(self):
 
-        if self.input_path is None or not os.path.isfile(self.input_path):
+        self.logger.debug("Loading input image %s" % self.image_path)
+
+        if self.image_path is None or not os.path.isfile(self.image_path):
             self.logger.critical("Invalid image path!")
             return False
 
@@ -108,17 +119,25 @@ class PixelartProcessor:
             return False
 
         # Scale if necessary
-        if self.input_scaling is not None:
+        if self.image_scaling is not None:
+            self.logger.debug("Scaling input to %dx%d..." %
+                    self.image_scaling)
             self.image = self.image.resize(self.image_scaling,
-                    resample=self.interp)
+                    resample=self.interp).convert(self.colorspace)
+
+        return True
 
     def find_nearest_neighbors(self):
+
+        self.logger.debug("Finding nearest neighbors...")
 
         # Find nearest neighbors here.
         vals = np.array(list(self.colors.values()))
 
         # Make a cKDTree if we have scipy
-        if scipy_found:
+        if found_ckdtree:
+            self.logger.debug("We have a cKDTree - this\
+                    will be quick!")
             kdtree = cKDTree(vals)
         else:
             kdtree = None
@@ -131,6 +150,9 @@ class PixelartProcessor:
         neighbors = np.zeros(image.shape[0:2], dtype='intp')
 
         for i, row in enumerate(image):
+
+            self.logger.debug('Matching nearest neighbors... '
+                               '(%d of %d complete)' % (i, rows))
 
             # If we have the kdtree, use it of course
             if kdtree:
@@ -159,22 +181,22 @@ class PixelartProcessor:
     def generate_pixelart(self):
 
         # Creating the final image may take a lot of RAM!
-        w = self.texture_width
-        h = self.texture_height
+        w, h = self.texture_dimension
+        keys = np.array(list(self.colors.keys()))
         image = np.array(self.image)
         iw = image.shape[0]
         ih = image.shape[1]
         try:
-            final = np.zeros((w*iw, h*ih), 3))
+            final = np.zeros((w*iw, h*ih, 3))
         except MemoryError:
             self.logger.critical("Ran out of memory while creating\
                                   final image!")
             return False
         
-        for i, row in enumerate(keys[neighbors]):
+        for i, row in enumerate(keys[self.neighbors]):
             for j, key in enumerate(row):
-                final[i*w:i*w+w, j*h:j*h+h] = np.array(self.pics[key].copy())
-        final = final.astype('intp')
+                final[i*w:i*w+w, j*h:j*h+h] = np.array(self.textures[key].copy())
+        final = final.astype('uint8')
         self.output = Image.fromarray(final)
         return self.output
 
@@ -196,7 +218,9 @@ class PixelartProcessor:
         # Perform nearest neighbor search
         self.find_nearest_neighbors()
         # Generate pixelart image
+        self.generate_pixelart()
         # Save pixelart image
+        self.output.save(self.output_path)
         # Generate report
         # Return report
 

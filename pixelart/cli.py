@@ -66,6 +66,7 @@ def cli_process():
                                 M and N are positive integers.')
     parser.add_argument('-t', '--texture-dimension',
                         dest='texture_dimension', type=valid_scale,
+                        default=(16,16),
                         help='Dimensions to expect when loading\
                                 textures. All textures not of\
                                 this dimension will be ignored.\
@@ -88,7 +89,8 @@ def cli_process():
             colorspace=args.colorspace, interp=args.interp,
             minkowski=args.p, image_scaling=args.scaling,
             texture_dimension=args.texture_dimension,
-            logging_handler=StreamHandler(sys.stdout))
+            logging_handler=StreamHandler(sys.stdout),
+            logging_level=args.log_level)
     processor.process()
 
 if __name__ == '__main__':
