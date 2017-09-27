@@ -2,6 +2,7 @@ from PIL import Image, ImageTk
 import numpy as np
 import os, re, gc, sys
 import logging
+import zipfile
 
 # Our own functions
 from textures import NameFilter
@@ -59,45 +60,80 @@ class PixelartProcessor:
             self.logger.critical("Invalid output format! (%s)" % e)
             return False
 
+    def load_texture(self, fi):
+        '''Load one texture into self.textures.
+        fi is a file object which can be used by PIL.
+        '''
+
+        try:
+            texture = Image.open(fi)
+            # And if we can't read it, just silently fail.
+        except ValueError:
+            return False
+        except OSError:
+            return False
+        except IOError:
+            return False
+
+        # Now we know this is a valid texture.
+        # Check to make sure its shape matches the expected shape, if any.
+        if self.texture_dimension is not None:
+            if not texture.size == self.texture_dimension:
+                return False
+        
+        # Resize to 1x1 using desired interpolation method, then
+        # get the only pixel in the image to find the average color.
+        # We also convert to the desired color space.
+        self.colors[name] = np.array(texture.resize((1,1),
+            resample=self.interp).convert(self.colorspace)\
+                    .getpixel((0,0)))
+        self.textures[name] = texture.convert('RGB')
+
+        return True
+
     def load_textures(self):
 
         self.colors = {}
         self.textures = {}
 
-        if self.textures_path is None or not os.path.isdir(self.textures_path):
+        if self.textures_path is None:
             self.logger.critical("Invalid texture path!")
             return False
 
         namefilter = NameFilter()
-        for fi in os.listdir(self.textures_path):
+        
+        # If this is a directory, we assume
+        # all the textures are in the same directory
+        if os.path.isdir(self.textures_path):
+            for fi in os.listdir(self.textures_path):
 
-            name, ext = os.path.splitext(fi)
-            if not namefilter.filter_file(name, ext):
-                continue
-
-            try:
-                texture = Image.open(os.path.join(self.textures_path, fi))
-                # And if we can't read it, just silently fail.
-            except ValueError:
-                continue
-            except OSError:
-                continue
-            except IOError:
-                continue
-
-            # Now we know this is a valid texture.
-            # Check to make sure its shape matches the expected shape, if any.
-            if self.texture_dimension is not None:
-                if not texture.size == self.texture_dimension:
+                name, ext = os.path.splitext(fi)
+                if not namefilter.filter_file(name, ext):
                     continue
-            
-            # Resize to 1x1 using desired interpolation method, then
-            # get the only pixel in the image to find the average color.
-            # We also convert to the desired color space.
-            self.colors[name] = np.array(texture.resize((1,1),
-                resample=self.interp).convert(self.colorspace)\
-                        .getpixel((0,0)))
-            self.textures[name] = texture.convert('RGB')
+                with open(os.path.join(self.textures_path, fi)) as f:
+                    self.load_texture(f)
+
+        # If it's a file, try to open it as an archive.
+        else if os.path.isfile(self.textures_path):
+            # Guess this is a zip (jar) file
+            head, tail = os.path.split(self.textures_path)
+            name, ext = os.path.splitext(tail)
+
+            if ext not in ['.zip', '.jar']:
+                # TODO accommodate other archive formats in python
+                self.logger.critical("Unknown archive format %s!" % ext)
+                return False
+
+            # Now we're pretty sure this is a zip file.
+            # We can guess the location of the textures
+            with ZipFile(self.textures_path, 'r') as fi:
+                # TODO Find files based on guessed texture directory
+                for member_name in fi.namelist():
+                    # TODO filter this somehow.
+                    with fi.open(member_name) as texture_file:
+                        # Add this as a texture
+                        self.load_texture(texture_file):
+
 
         if len(self.colors) == 0:
             self.logger.critical("No loadable textures found!")
