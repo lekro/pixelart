@@ -1,40 +1,13 @@
 from PIL import Image, ImageTk
-import numpy as np
+import logging
 import os, re, gc
 import sys
 import tkinter as tk
 import tkinter.filedialog as filedialog
 from threading import Thread
+from processing import PixelartProcessor
 
-# See if we can get cKDTree...
-scipy_found = False
-try:
-    from scipy.spatial import cKDTree
-    scipy_found = True
-except ImportError:
-    pass
 
-NO_TEXTURES_MESSAGE = 'No textures loaded!'
-NO_INPUT_MESSAGE = 'No input image!'
-IGNORE_REGEX_SOURCES = ['sapling.*', 'wheat_stage.*', '.*grass.*', 'water.*', 'redstone_dust.*', 'repeater.*',
-                 'dragon_egg', 'cake.*', 'fern', '.*_stage_.*', 'flower.*', 'shulker.*', 'door.*',
-                 'enchanting.*', 'double_plant.*', '.*_layer_.*', 'deadbush', 'vine', 'hopper.*', 'portal',
-                 'anvil.*', 'daylight.*', 'comparator.*', 'trip.*', 'farmland.*', 'grass_side', 'mycelium_side',
-                 'podzol_side', 'leaves.*', 'reeds', '.*pane.*', '.*_stem.*', 'endframe_.*', 'mushroom_red',
-                 'mushroom_brown', 'web', 'tnt_top', 'cactus.*', 'lava.*', 'chorus_plant', '.*torch_.*', 'chorus_.*',
-                 'pumpkin_top', 'pumpkin_bottom', 'lever', 'rail_.*', 'jukebox_top', 'trapdoor', 'stone_slab_top',
-                 'ladder', 'iron_bars', 'brewing_stand', 'crafting_table_.*', 'bookshelf', 'glazed_terracotta_brown',
-                 'redstone_lamp_on', 'furnace_front_on', 'quartz_ore', 'cauldron.*', 'debug.*', 'glass', 'end_rod',
-                 'structure_block.*', 'mycelium.*', 'grass.*', 'itemframe.*', 'furnace_top',
-                 'iron_trapdoor', '.*_podzol_.*', 'concrete_powder.*',
-                 'sand', 'red_sand', 'gravel', 'dispenser_.*', 'dropper_.*',
-                 'observer_.*', 'frosted_ice_.*', 'furnace.*', 
-                 'glazed_terracotta_.*[abcfghjmqstuvxz]+.*',
-                 'ice.*', 'melon_.*', 'pumpkin_.*', 'mushroom.*',
-                 'piston_.*', 'beacon',
-                 'quartz_block_(chiseled)?(lines)?(bottom)?(top)?.*',
-                 'purpur_pillar.*', 'slime', 'tnt_.*', 'mob_spawner',
-                 'jukebox_top']
 PATH_FORMATS = [str, bytes, os.PathLike, int]
 
 class BlockReportDialog(tk.Toplevel):
@@ -79,9 +52,33 @@ class BlockReportDialog(tk.Toplevel):
         self.parent.focus_set()
         self.destroy()
 
+class StatusBarLoggingHandler(logging.Handler):
+
+    def __init__(self, statusbar):
+        '''Instantiate a new StatusBarLoggingHandler.
+
+        statusbar is a tkinter label to which we can
+        write text and change its color.
+        '''
+
+        super().__init__()
+        self.statusbar = statusbar
+
+    def emit(self, record):
+
+        statusbar['text'] = record.getMessage()
+        if record.level == logging.CRITICAL:
+            statusbar['fg'] = 'red'
+        else:
+            statusbar['bg'] = 'black'
+
+
 class Application(tk.Frame):
 
     def __init__(self, master=None, ignore=None):
+
+        # Create options dict for arbitrary options...
+        self.options = {}
 
         super().__init__(master)
         self.pack(fill='both', expand=1)
@@ -90,10 +87,10 @@ class Application(tk.Frame):
         if self.ignore_regexes is None:
             self.ignore_regexes = []
 
-        self.texture_dir = None
-        self.image_path = None
+        self.textures_ready = False
+        self.input_ready = False
         self.create_widgets()
-        self.set_status()
+        self.update_status()
         self.thread = None
 
     def create_widgets(self):
@@ -133,7 +130,7 @@ class Application(tk.Frame):
         self.scaling_frame.grid(row=2, column=0)
 
         self.scaling_x = tk.Entry(self.scaling_frame)
-        self.scaling_x.bind('<Return>', self.perform_scaling)
+        self.scaling_x.bind('<Return>', self.set_scaling)
         self.scaling_x.config(width=5)
         self.scaling_x.pack(side='left')
 
@@ -141,12 +138,12 @@ class Application(tk.Frame):
         self.scaling_by.pack(side='left')
 
         self.scaling_y = tk.Entry(self.scaling_frame)
-        self.scaling_y.bind('<Return>', self.perform_scaling)
+        self.scaling_y.bind('<Return>', self.set_scaling)
         self.scaling_y.config(width=5)
         self.scaling_y.pack(side='left')
 
         self.scaling_button = tk.Button(self.scaling_frame, text='Scale',
-                command=self.perform_scaling)
+                command=self.set_scaling)
         self.scaling_button.pack(side='right')
 
         self.scaling_status = tk.Label(self.cont, text='')
@@ -161,7 +158,7 @@ class Application(tk.Frame):
                 state='disabled', command=self.process_thread)
         self.start_button.pack(side='right', padx=5, pady=5)
 
-    def perform_scaling(self, event=None):
+    def set_scaling(self, event=None):
 
         x = self.scaling_x.get()
         y = self.scaling_y.get()
@@ -174,17 +171,27 @@ class Application(tk.Frame):
             self.scaling_status['fg'] = 'red'
             return
 
-        self.scaled_image = self.image.resize((x, y),
-                resample=Image.BICUBIC).convert('RGB')
+        self.options['input_scaling'] = (x, y)
 
-        self.scaling_status['text'] = 'Scaled to %dx%d' % (x, y)
+        self.scaling_status['text'] = 'Will scale to %dx%d' % (x, y)
         self.scaling_status['fg'] = 'green'
 
 
     def process_thread(self):
 
+        # Ask for output file
+        out_path = filedialog.asksaveasfilename()
+        if out_path is None or os.path.isdir(out_path):
+            return
+
+        # Create processor
+        processor = PixelartProcessor(self.texture_path, self.input_path,
+                                      out_path,
+                                      image_scaling=self.options['input_scaling'],
+                                      logging_handler=self,
+                                      logging_level=logging.DEBUG)
         self.stop_processing = False
-        self.thread = Thread(target=self.process, daemon=True)
+        self.thread = Thread(target=processor.process, daemon=True)
         self.thread.start()
 
     def exit_now(self):
@@ -207,9 +214,6 @@ class Application(tk.Frame):
 
     def process(self):
 
-        out_path = filedialog.asksaveasfilename()
-        if out_path is None or os.path.isdir(out_path):
-            return
 
         # Try to write a dummy file to see if this is a valid format...
         try:
@@ -284,8 +288,8 @@ class Application(tk.Frame):
         self.show_block_report(dict(zip(keys[unique], counts)))
 
     def get_status(self):
-        return self.texture_dir is None or self.image_path is None
-    def set_status(self):
+        return self.textures_ready and self.input_ready
+    def update_status(self):
         if self.get_status():
             self.statusbar['text'] = 'Not ready: load textures and image!'
             self.statusbar['fg'] = 'red'
@@ -297,125 +301,48 @@ class Application(tk.Frame):
 
     def pick_texture_dir(self):
 
-        self.texture_dir = None
+        texture_dir = None
 
-        self.texture_dir = filedialog.askdirectory()
-        if self.texture_dir is None or type(self.texture_dir) not in PATH_FORMATS or \
-                not os.path.isdir(self.texture_dir):
-            self.texture_failure()
-            self.set_status()
-            return
-
-        self.colors = {}
-        self.pics = {}
-        self.texture_width = None
-        self.texture_height = None
-
-        for fi in os.listdir(self.texture_dir):
-
-            # Minecraft textures are png files
-            if not fi.endswith(".png"):
-                continue
-            name = fi[:-4]
-
-            # Ignore textures which match any ignore regexes
-            skip = False
-            for regex in self.ignore_regexes:
-                if regex.match(name) is not None: 
-                    skip = True
-                    break
-            if skip:
-                continue
-
-            # Now we can open the image
-            p = Image.open(os.path.join(self.texture_dir, fi))\
-                    .convert('RGB')
-
-            # Require regular texture dimensions
-            if self.texture_width is None:
-                self.texture_width = p.width
-                self.texture_height = p.height
-            elif p.width is not self.texture_width:
-                continue
-            elif p.height is not self.texture_height:
-                continue
-
-            # Resize the image to 1x1 using bicubic interpolation
-            # Then get the only pixel in the image, only RGB
-            # (ignoring alpha)
-            self.colors[name] = np.array(p.resize((1, 1),
-                resample=Image.BICUBIC).getpixel((0, 0)))[0:3]
-            self.pics[name] = p
-
-        if len(self.colors) > 0:
-            self.texture_status['text'] = '%d %dx%d textures loaded' % \
-                    (len(self.colors), self.texture_width, 
-                            self.texture_height)
-            self.texture_status['fg'] = 'green'
-        else:
-            self.texture_failure()
-
-        self.set_status()
+        texture_dir = filedialog.askdirectory()
+        if texture_dir is None or type(texture_dir) not in PATH_FORMATS or \
+                not os.path.isdir(texture_dir):
+            self.texture_status['text'] = 'Invalid texture directory!'
+            self.texture_status['fg'] = 'red'
+            self.textures_ready = False
+            self.update_status()
+            return False
+        self.options['texture_path'] = texture_dir
+        self.texture_status['fg'] = 'black'
+        self.texture_status['text'] = texture_dir
+        self.textures_ready = True
+        self.update_status()
+        return True
 
     def pick_image(self):
 
-        self.image_path = None
-        self.image_path = filedialog.askopenfilename()
+        input_path = None
+        input_path = filedialog.askopenfilename()
 
-        if self.image_path is None or type(self.image_path) not in PATH_FORMATS or \
-                not os.path.isfile(self.image_path):
+        if input_path is None or type(input_path) not in PATH_FORMATS or \
+                not os.path.isfile(input_path):
                 
-            self.image_failure()
-            return
-
-        self.image = None
-        try:
-            self.image = Image.open(self.image_path)
-        except IOError:
-            self.image_failure(message="Couldn't load image!")
-            return
-        except ValueError:
-            self.image_failure(message="Unknown image format!")
-            return
-        self.scaled_image = self.image
-
-        self.input_status['text'] = "Loaded %sx%s image" %\
-                (self.image.width, self.image.height)
-        self.input_status['fg'] = 'green'
-        self.scaling_status['text'] = ''
-
-        self.set_status()
-
-    def image_failure(self, message=None):
-        
-        if message is None:
-            self.input_status['text'] = NO_INPUT_MESSAGE
-        else:
-            self.input_status['text'] = message
-        self.input_status['fg'] = 'red'
-        self.image_path = None
-        self.scaling_status['text'] = ''
-
-        self.set_status()
-
-    def texture_failure(self, message=None):
-
-        if message is None:
-            self.texture_status['text'] = NO_TEXTURES_MESSAGE
-        else:
-            self.texture_status['text'] = message
-
-        self.texture_status['fg'] = 'red'
-        self.texture_dir = None
-
-        self.set_status()
+            self.input_status['text'] = 'Invalid input file!'
+            self.input_status['fg'] = 'red'
+            self.input_ready = False
+            self.update_status()
+            return False
+        self.options['input_path'] = input_path
+        self.input_status['fg'] = 'black'
+        self.input_status['text'] = input_path
+        self.input_ready = True
+        self.update_status()
+        return True
 
 def main():
 
-    ignore_regexes = [re.compile(x) for x in IGNORE_REGEX_SOURCES]
     root = tk.Tk()
     root.wm_title("kapurai's pixelart helper")
-    app = Application(master=root, ignore=ignore_regexes)
+    app = Application(master=root)
     app.mainloop()
 
 if __name__ == '__main__':
