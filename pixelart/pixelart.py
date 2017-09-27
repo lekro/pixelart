@@ -90,6 +90,7 @@ class Application(tk.Frame):
         self.textures_ready = False
         self.input_ready = False
         self.create_widgets()
+        self.logger = StatusBarLoggingHandler(self.statusbar)
         self.update_status()
         self.thread = None
 
@@ -101,7 +102,7 @@ class Application(tk.Frame):
         self.statusbar = tk.Label(self, relief='sunken', text='Not ready',
                 anchor='w', fg='red')
         self.statusbar.pack(side='bottom', fill='x', expand=1)
-
+        
         # Center buttons and part where things happen
         self.cont = tk.Frame(self)
         self.cont.pack(side='top', fill='both', expand=1)
@@ -112,7 +113,7 @@ class Application(tk.Frame):
         self.texture_button.grid(row=0,column=0)
 
         self.texture_status = tk.Label(self.cont,
-                text=NO_TEXTURES_MESSAGE,
+                text='No textures selected!',
                 fg='red')
         self.texture_status.grid(row=0,column=1)
 
@@ -122,7 +123,7 @@ class Application(tk.Frame):
         self.input_button.grid(row=1, column=0)
 
         self.input_status = tk.Label(self.cont, 
-                text=NO_INPUT_MESSAGE,
+                text='No input image!',
                 fg='red')
         self.input_status.grid(row=1, column=1)
 
@@ -188,7 +189,7 @@ class Application(tk.Frame):
         processor = PixelartProcessor(self.texture_path, self.input_path,
                                       out_path,
                                       image_scaling=self.options['input_scaling'],
-                                      logging_handler=self,
+                                      logging_handler=self.logger,
                                       logging_level=logging.DEBUG)
         self.stop_processing = False
         self.thread = Thread(target=processor.process, daemon=True)
@@ -210,82 +211,6 @@ class Application(tk.Frame):
             )
 
         BlockReportDialog(self, report_pics)
-
-
-    def process(self):
-
-
-        # Try to write a dummy file to see if this is a valid format...
-        try:
-            Image.fromarray(np.array([[[0,0,0]]], dtype='uint8')).save(out_path)
-        except ValueError:
-            # Complain a lot
-            self.statusbar['text'] = 'Failure: unknown output format. Try adding .png at the end.'
-            self.statusbar['fg'] = 'red'
-            return
-
-        self.statusbar['fg'] = 'black'
-        self.statusbar['text'] = 'Creating cKDTree for nearest neighbors matching...'
-
-        vals = np.array(list(self.colors.values()))
-        keys = np.array(list(self.colors.keys()))
-
-        # Only make a cKDTree if possible.
-        if scipy_found:
-            kdtree = cKDTree(vals)
-        image = np.array(self.scaled_image)[...,0:3]
-
-        rows = image.shape[0]
-
-        neighbors = np.zeros(image.shape[0:2])
-        for i, row in enumerate(image):
-            # If we have the kdtree...
-            if scipy_found:
-                _, neigh = kdtree.query(row, k=1)
-            else:
-                # Since we don't have the kdtree, brute force!
-                # We don't have to take the norms actually,
-                # the square is fine since we're just finding
-                # the minimum distance.
-                neigh = np.zeros(row.shape[0])
-                for j, pix in enumerate(row):
-                    norm_squares = np.zeros(vals.shape[0])
-                    for k, color in enumerate(vals):
-                        norm_squares[k] = (color[0]-pix[0])**2
-                        norm_squares[k] += (color[1]-pix[1])**2
-                        norm_squares[k] += (color[2]-pix[2])**2
-                    neigh[j] = np.argmin(norm_squares)
-
-            neighbors[i] = neigh.astype('uint8')
-            self.statusbar['text'] = 'Finding nearest neighbors (%d of %d complete)...' % (i+1, rows)
-
-            if self.stop_processing is True:
-                return
-
-        self.statusbar['text'] = 'Creating final image... this may take a lot of RAM.'
-        neighbors = neighbors.astype('uint8')
-
-        w = self.texture_width
-        h = self.texture_height
-        try:
-            final = np.zeros((image.shape[0] * w, image.shape[1] * h, 3))
-        except MemoryError:
-            self.statusbar['text'] = 'Out of memory! Please close other \
-                    things!'
-            return
-
-        for i, row in enumerate(keys[neighbors]):
-            for j, key in enumerate(row):
-                final[i*w:i*w+w, j*h:j*h+h] = np.array(self.pics[key].copy())
-        final = final.astype('uint8')
-        output = Image.fromarray(final)
-        output.save(out_path)
-
-        self.statusbar['text'] = 'Image generation successful!'
-
-        # Now we show the block report
-        unique, counts = np.unique(neighbors, return_counts=True)
-        self.show_block_report(dict(zip(keys[unique], counts)))
 
     def get_status(self):
         return self.textures_ready and self.input_ready
