@@ -84,12 +84,15 @@ def cli_process():
     # Actually process arguments
     args = parser.parse_args(sys.argv[1:])
     
+    # Create logging handler which goes to stdout
+    handler = StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter(fmt='[%(levelname)s] %(message)s'))
     # Instantiate PixelartProcessor
     processor = PixelartProcessor(args.textures, args.input, args.output,
             colorspace=args.colorspace, interp=args.interp,
             minkowski=args.p, image_scaling=args.scaling,
             texture_dimension=args.texture_dimension,
-            logging_handler=StreamHandler(sys.stdout),
+            logging_handler=handler,
             logging_level=args.log_level)
     processor.process()
 

@@ -3,6 +3,9 @@ import numpy as np
 import os, re, gc, sys
 import logging
 
+# Our own functions
+from textures import NameFilter
+
 # Try to get cKDTree from scipy.
 found_ckdtree = False
 try:
@@ -64,10 +67,13 @@ class PixelartProcessor:
         if self.textures_path is None or not os.path.isdir(self.textures_path):
             self.logger.critical("Invalid texture path!")
             return False
+
+        namefilter = NameFilter()
         for fi in os.listdir(self.textures_path):
-            # TODO Perform filtering on names of files
-            # TODO Get name of texture from file name
-            name, _ = os.path.splitext(fi)
+
+            name, ext = os.path.splitext(fi)
+            if not namefilter.filter_file(name, ext):
+                continue
 
             try:
                 texture = Image.open(os.path.join(self.textures_path, fi))
@@ -97,12 +103,12 @@ class PixelartProcessor:
             self.logger.critical("No loadable textures found!")
             return False
 
-        self.logger.debug("Loaded %d textures!" % len(self.colors))
+        self.logger.info("Loaded %d textures!" % len(self.colors))
         return True
 
     def load_image(self):
 
-        self.logger.debug("Loading input image %s" % self.image_path)
+        self.logger.info("Loading input image %s" % self.image_path)
 
         if self.image_path is None or not os.path.isfile(self.image_path):
             self.logger.critical("Invalid image path!")
@@ -129,15 +135,15 @@ class PixelartProcessor:
 
     def find_nearest_neighbors(self):
 
-        self.logger.debug("Finding nearest neighbors...")
+        self.logger.info("Finding nearest neighbors...")
 
         # Find nearest neighbors here.
         vals = np.array(list(self.colors.values()))
 
         # Make a cKDTree if we have scipy
         if found_ckdtree:
-            self.logger.debug("We have a cKDTree - this\
-                    will be quick!")
+            self.logger.debug("We have a cKDTree - this "
+                              "will be quick!")
             kdtree = cKDTree(vals)
         else:
             kdtree = None
@@ -151,7 +157,7 @@ class PixelartProcessor:
 
         for i, row in enumerate(image):
 
-            self.logger.debug('Matching nearest neighbors... '
+            self.logger.log(5, 'Matching nearest neighbors... '
                                '(%d of %d complete)' % (i, rows))
 
             # If we have the kdtree, use it of course
@@ -189,8 +195,8 @@ class PixelartProcessor:
         try:
             final = np.zeros((w*iw, h*ih, 3))
         except MemoryError:
-            self.logger.critical("Ran out of memory while creating\
-                                  final image!")
+            self.logger.critical("Ran out of memory while creating "
+                                  "final image!")
             return False
         
         for i, row in enumerate(keys[self.neighbors]):
@@ -218,7 +224,8 @@ class PixelartProcessor:
         # Perform nearest neighbor search
         self.find_nearest_neighbors()
         # Generate pixelart image
-        self.generate_pixelart()
+        if not self.generate_pixelart():
+            return False
         # Save pixelart image
         self.output.save(self.output_path)
         # Generate report
