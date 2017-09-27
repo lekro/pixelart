@@ -5,6 +5,8 @@ import sys
 import tkinter as tk
 import tkinter.filedialog as filedialog
 from threading import Thread
+
+# Import our own functions
 from processing import PixelartProcessor
 
 
@@ -66,11 +68,11 @@ class StatusBarLoggingHandler(logging.Handler):
 
     def emit(self, record):
 
-        statusbar['text'] = record.getMessage()
-        if record.level == logging.CRITICAL:
-            statusbar['fg'] = 'red'
+        self.statusbar['text'] = record.getMessage()
+        if record.levelno == logging.CRITICAL:
+            self.statusbar['fg'] = 'red'
         else:
-            statusbar['bg'] = 'black'
+            self.statusbar['fg'] = 'green'
 
 
 class Application(tk.Frame):
@@ -78,7 +80,7 @@ class Application(tk.Frame):
     def __init__(self, master=None, ignore=None):
 
         # Create options dict for arbitrary options...
-        self.options = {}
+        self.options = dict(input_scaling=None)
 
         super().__init__(master)
         self.pack(fill='both', expand=1)
@@ -90,7 +92,8 @@ class Application(tk.Frame):
         self.textures_ready = False
         self.input_ready = False
         self.create_widgets()
-        self.logger = StatusBarLoggingHandler(self.statusbar)
+        self.handler = StatusBarLoggingHandler(self.statusbar)
+        self.handler.setLevel(5)
         self.update_status()
         self.thread = None
 
@@ -170,6 +173,7 @@ class Application(tk.Frame):
         except:
             self.scaling_status['text'] = 'Invalid scaling values!'
             self.scaling_status['fg'] = 'red'
+            self.options['input_scaling'] = None
             return
 
         self.options['input_scaling'] = (x, y)
@@ -186,11 +190,11 @@ class Application(tk.Frame):
             return
 
         # Create processor
-        processor = PixelartProcessor(self.texture_path, self.input_path,
+        processor = PixelartProcessor(self.options['texture_path'], 
+                                      self.options['input_path'],
                                       out_path,
                                       image_scaling=self.options['input_scaling'],
-                                      logging_handler=self.logger,
-                                      logging_level=logging.DEBUG)
+                                      logging_handler=self.handler)
         self.stop_processing = False
         self.thread = Thread(target=processor.process, daemon=True)
         self.thread.start()
@@ -215,7 +219,7 @@ class Application(tk.Frame):
     def get_status(self):
         return self.textures_ready and self.input_ready
     def update_status(self):
-        if self.get_status():
+        if not self.get_status():
             self.statusbar['text'] = 'Not ready: load textures and image!'
             self.statusbar['fg'] = 'red'
             self.start_button['state'] = 'disabled'
@@ -235,13 +239,12 @@ class Application(tk.Frame):
             self.texture_status['fg'] = 'red'
             self.textures_ready = False
             self.update_status()
-            return False
+            return
         self.options['texture_path'] = texture_dir
-        self.texture_status['fg'] = 'black'
+        self.texture_status['fg'] = 'green'
         self.texture_status['text'] = texture_dir
         self.textures_ready = True
         self.update_status()
-        return True
 
     def pick_image(self):
 
@@ -255,13 +258,12 @@ class Application(tk.Frame):
             self.input_status['fg'] = 'red'
             self.input_ready = False
             self.update_status()
-            return False
+            return
         self.options['input_path'] = input_path
-        self.input_status['fg'] = 'black'
+        self.input_status['fg'] = 'green'
         self.input_status['text'] = input_path
         self.input_ready = True
         self.update_status()
-        return True
 
 def main():
 

@@ -28,7 +28,7 @@ DEFAULT_IGNORE_REGEX = ['sapling.*', 'wheat_stage.*', '.*grass.*',
                          'piston_.*', 'beacon',
                          'quartz_block_(chiseled)?(lines)?(bottom)?(top)?.*',
                          'purpur_pillar.*', 'slime', 'tnt_.*', 'mob_spawner',
-                         'jukebox_top']
+                         'jukebox_top', 'repeating_command_block.*']
 
 class NameFilter:
 

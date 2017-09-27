@@ -27,7 +27,7 @@ class PixelartProcessor:
     def __init__(self, textures_path, image_path, output_path,
             colorspace='RGB', interp='lanczos', minkowski=2,
             image_scaling=None, texture_dimension=(16,16),
-            logging_handler=None, logging_level=logging.INFO):
+            logging_handler=None):
 
         self.textures_path = textures_path
         self.image_path = image_path
@@ -40,7 +40,7 @@ class PixelartProcessor:
         
         # Set up logging.
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging_level)
+        self.logger.setLevel(1)
         if logging_handler is None:
             self.logger.addHandler(logging.NullHandler())
         else:
@@ -60,7 +60,7 @@ class PixelartProcessor:
             self.logger.critical("Invalid output format! (%s)" % e)
             return False
 
-    def load_texture(self, fi):
+    def load_texture(self, fi, name):
         '''Load one texture into self.textures.
         fi is a file object which can be used by PIL.
         '''
@@ -110,11 +110,12 @@ class PixelartProcessor:
                 name, ext = os.path.splitext(fi)
                 if not namefilter.filter_file(name, ext):
                     continue
-                with open(os.path.join(self.textures_path, fi)) as f:
-                    self.load_texture(f)
+                with open(os.path.join(self.textures_path, fi),
+                          mode='rb') as f:
+                    self.load_texture(f, name)
 
         # If it's a file, try to open it as an archive.
-        else if os.path.isfile(self.textures_path):
+        elif os.path.isfile(self.textures_path):
             # Guess this is a zip (jar) file
             head, tail = os.path.split(self.textures_path)
             name, ext = os.path.splitext(tail)
@@ -132,11 +133,11 @@ class PixelartProcessor:
                     # TODO filter this somehow.
                     with fi.open(member_name) as texture_file:
                         # Add this as a texture
-                        self.load_texture(texture_file):
+                        self.load_texture(texture_file)
 
 
         if len(self.colors) == 0:
-            self.logger.critical("No loadable textures found!")
+            self.logger.critical("No loadable textures found in %s!" % self.textures_path)
             return False
 
         self.logger.info("Loaded %d textures!" % len(self.colors))
@@ -194,7 +195,7 @@ class PixelartProcessor:
         for i, row in enumerate(image):
 
             self.logger.log(5, 'Matching nearest neighbors... '
-                               '(%d of %d complete)' % (i, rows))
+                               '(%d of %d complete)' % (i+1, rows))
 
             # If we have the kdtree, use it of course
             if kdtree:
@@ -228,12 +229,15 @@ class PixelartProcessor:
         image = np.array(self.image)
         iw = image.shape[0]
         ih = image.shape[1]
+        self.logger.debug("Allocating space for a %dx%d image..."\
+                % (w*iw, h*ih))
         try:
             final = np.zeros((w*iw, h*ih, 3))
         except MemoryError:
             self.logger.critical("Ran out of memory while creating "
                                   "final image!")
             return False
+        self.logger.debug("Pasting textures into final image...")
         
         for i, row in enumerate(keys[self.neighbors]):
             for j, key in enumerate(row):
@@ -264,6 +268,8 @@ class PixelartProcessor:
             return False
         # Save pixelart image
         self.output.save(self.output_path)
+
+        self.logger.debug("Done!")
         # Generate report
         # Return report
 
