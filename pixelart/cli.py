@@ -49,7 +49,7 @@ def cli_process():
     parser.add_argument('-i', '--interpolation', dest='interp', type=str,
                         choices=['nearest', 'bilinear', 'bicubic', 
                                  'lanczos'],
-                        default='lanczos',
+                        default='bicubic',
                         help='Interpolation method used to scale the\
                                 input image and to find the average\
                                 color of each texture. (default: \

@@ -25,7 +25,7 @@ interpval = dict(nearest=Image.NEAREST,
 class PixelartProcessor:
 
     def __init__(self, textures_path, image_path, output_path,
-            colorspace='RGB', interp='lanczos', minkowski=2,
+            colorspace='RGB', interp='bicubic', minkowski=2,
             image_scaling=None, texture_dimension=(16,16),
             logging_handler=None):
 
@@ -183,6 +183,8 @@ class PixelartProcessor:
                               "will be quick!")
             kdtree = cKDTree(vals)
         else:
+            self.logger.debug("No cKDTree found - this "
+                              "step may take some time...")
             kdtree = None
         image = np.array(self.image)
 
@@ -222,6 +224,8 @@ class PixelartProcessor:
         return neighbors
 
     def generate_pixelart(self):
+
+        self.logger.info("Creating output image...")
 
         # Creating the final image may take a lot of RAM!
         w, h = self.texture_dimension
