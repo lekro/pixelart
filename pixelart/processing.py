@@ -33,7 +33,7 @@ class PixelartProcessor:
     def __init__(self, textures_path, image_path, output_path,
             colorspace='RGB', interp='bicubic', minkowski=2,
             image_scaling=None, texture_dimension=(16,16),
-            logging_handler=None):
+            logging_handler=None, ui_caller=None):
 
         self.textures_path = textures_path
         self.image_path = image_path
@@ -43,6 +43,7 @@ class PixelartProcessor:
         self.minkowski = minkowski
         self.image_scaling = image_scaling
         self.texture_dimension = texture_dimension
+        self.ui_caller = ui_caller
         
         # Set up logging.
         self.logger = logging.getLogger(__name__)
@@ -277,6 +278,12 @@ class PixelartProcessor:
         self.output = Image.fromarray(final)
         return self.output
 
+    def generate_report(self):
+
+        names = np.array(list(self.colors.keys()))
+        unique, counts = np.unique(names, return_counts=True)
+        return map(zip(unique, counts))
+
     def process(self):
 
         # Test output format
@@ -302,7 +309,12 @@ class PixelartProcessor:
 
         self.logger.debug("Done!")
         # Generate report
-        # Return report
+        # and send it back to the caller. Not sure if this
+        # is the right way of doing things.
+        if self.ui_caller is not None:
+            self.ui_caller.done_processing(self.generate_report())
+
+        
 
 
 

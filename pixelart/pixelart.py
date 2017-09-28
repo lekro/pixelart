@@ -54,6 +54,72 @@ class BlockReportDialog(tk.Toplevel):
         self.parent.focus_set()
         self.destroy()
 
+class OptionsDialog(tk.Toplevel):
+
+    def __init__(self, parent, options):
+
+        tk.Toplevel.__init__(self, parent)
+        self.transient(parent)
+        self.title("Options")
+        self.parent = parent
+
+        body = tk.Frame(self)
+        self.grab_set()
+
+        # Now actually create fields for settings
+        # For Minkowski p-norm...
+        norm_var = tk.StringVar()
+        norm_var.set(str(options['p']))
+        norm_label = tk.Label(body, text='Minkowski p-norm, p=')
+        norm_input = tk.Entry(body, textvariable=norm_var)
+        norm_status = tk.Label(body)
+        norm_label.grid(row=0, column=0)
+        norm_input.grid(row=0, column=1)
+        norm_status.grid(row=0, column=2)
+
+        # For color space...
+        cspace_var = tk.StringVar()
+        cspace_var.set(options['colorspace'])
+        cspace_label = tk.Label(body, text='Color matching space')
+        cspace_input = tk.OptionMenu(body, cspace_var, 'RGB', 'YCbCr', 'HSV')
+        cspace_status = tk.Label(body)
+        cspace_label.grid(row=1, column=0)
+        cspace_input.grid(row=1, column=1)
+        cspace_status.grid(row=1, column=2)
+
+        # For interpolation
+        interp_var = tk.StringVar()
+        interp_var.set(options['interp'])
+        interp_label = tk.Label(body, text='Interpolation method')
+        interp_input = tk.OptionMenu(body, interp_var, 'nearest', 'bilinear',
+                                     'bicubic', 'lanczos')
+        interp_status = tk.Label(body)
+        interp_label.grid(row=2, column=0)
+        interp_input.grid(row=2, column=1)
+        interp_status.grid(row=2, column=2)
+
+
+        bottom_frame = tk.Frame(self)
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
+
+        set_button = tk.Button(bottom_frame, text='Set',
+                command=self.set)
+        cancel_button = tk.Button(bottom_frame, text='Cancel',
+                command=self.cancel)
+        cancel_button.pack(side='right')
+        set_button.pack(side='right')
+        bottom_frame.pack(side='bottom')
+        body.pack(padx=5, pady=5, side='top')
+
+    def set(self, event=None):
+        # Set options in parent, then leave
+        self.cancel()
+
+    def cancel(self, event=None):
+        self.parent.focus_set()
+        self.destroy()
+
+
 class StatusBarLoggingHandler(logging.Handler):
 
     def __init__(self, statusbar):
@@ -80,7 +146,10 @@ class Application(tk.Frame):
     def __init__(self, master=None, ignore=None):
 
         # Create options dict for arbitrary options...
-        self.options = dict(input_scaling=None)
+        self.options = dict(input_scaling=None,
+                            p=2.0,
+                            interp='bicubic',
+                            colorspace='RGB')
 
         super().__init__(master)
         self.pack(fill='both', expand=1)
@@ -162,6 +231,14 @@ class Application(tk.Frame):
                 state='disabled', command=self.process_thread)
         self.start_button.pack(side='right', padx=5, pady=5)
 
+        # Options button
+        self.options_button = tk.Button(self, text='Options', fg='black',
+                command=self.show_options)
+        self.options_button.pack(side='right', padx=5, pady=5)
+
+    def show_options(self):
+        OptionsDialog(self, self.options)
+
     def set_scaling(self, event=None):
 
         x = self.scaling_x.get()
@@ -189,15 +266,23 @@ class Application(tk.Frame):
         if out_path is None or os.path.isdir(out_path):
             return
 
+        # Prevent the user from touching the start button
+        self.start_button['state'] = 'disabled'
+
         # Create processor
-        processor = PixelartProcessor(self.options['texture_path'], 
+        self.processor = PixelartProcessor(self.options['texture_path'], 
                                       self.options['input_path'],
                                       out_path,
                                       image_scaling=self.options['input_scaling'],
-                                      logging_handler=self.handler)
-        self.stop_processing = False
-        self.thread = Thread(target=processor.process, daemon=True)
+                                      logging_handler=self.handler,
+                                      ui_caller=self)
+        # We can't stop threads except by stopping the entire program.
+        # That's ok for us, the user can stop the program if needed.
+        self.thread = Thread(target=self.processor.process, daemon=True)
         self.thread.start()
+
+    def done_processing(self, block_report):
+        show_block_report(self, block_report)
 
     def exit_now(self):
 
@@ -210,7 +295,8 @@ class Application(tk.Frame):
         report_pics = {}
         for name in counts.keys():
             report_pics[name] = (
-                    ImageTk.PhotoImage(self.pics[name].copy()),
+                    ImageTk.PhotoImage(
+                        self.processor.textures[name].copy()),
                     counts[name]
             )
 
