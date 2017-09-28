@@ -116,7 +116,6 @@ class PixelartProcessor:
                 name, ext = os.path.splitext(fi)
                 if not namefilter.filter_file(name, ext):
                     continue
-                print([name, ext])
                 with open(os.path.join(self.textures_path, fi),
                           mode='rb') as f:
                     self.load_texture(f, name)
@@ -151,15 +150,12 @@ class PixelartProcessor:
                         aname, aext = os.path.splitext(atail)
                         if not namefilter.filter_file(aname, aext):
                             continue
-                        print([aname, aext])
 
                         # Now that we're done with that,
                         # actually try to open the file.
                         with fi.open(info, mode='r') as texture_file:
                             # Add this as a texture
                             self.load_texture(texture_file, aname)
-
-            # Then we can check if it's a tar file of some description
 
             # And our contingency plan is to fail!
             else:

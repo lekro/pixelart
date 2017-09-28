@@ -42,7 +42,7 @@ def cli_process():
                                 from 0 < p < infinity may be used.\
                                 (default: %(default)s)')
     parser.add_argument('-c', '--color-space', dest='colorspace', type=str,
-                        choices=['RGB', 'HSV', 'YCbCr', 'LAB'], 
+                        choices=['RGB', 'HSV', 'YCbCr'], 
                         default='RGB',
                         help='Color space in which nearest neighbors are\
                                 found. (default: %(default)s)')
