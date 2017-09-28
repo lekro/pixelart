@@ -7,7 +7,7 @@ import tkinter.filedialog as filedialog
 from threading import Thread
 
 # Import our own functions
-from processing import PixelartProcessor
+from .processing import PixelartProcessor
 
 
 PATH_FORMATS = [str, bytes, os.PathLike, int]

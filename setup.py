@@ -37,6 +37,8 @@ setup(
         entry_points={
             'console_scripts': [
                 'pixelart=pixelart:main',
+                'pixelart-cli=pixelart:main_cli',
+                'pixelart-gui=pixelart:main_gui'
             ],
         }
 )

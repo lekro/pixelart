@@ -5,7 +5,7 @@ import logging
 import zipfile
 
 # Our own functions
-from textures import NameFilter
+from .textures import NameFilter
 
 # Try to get cKDTree from scipy.
 found_ckdtree = False

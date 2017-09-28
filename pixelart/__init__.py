@@ -1,5 +1,13 @@
 
-from pixelart import pixelart as pi
+from pixelart import gui, cli
 
 def main():
-    pi.main()
+    main_cli()
+
+def main_cli():
+    cli.main()
+
+def main_gui():
+    gui.main()
+
+

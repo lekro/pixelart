@@ -4,7 +4,7 @@ import logging
 from logging import StreamHandler
 
 # Import from this package
-from processing import PixelartProcessor
+from .processing import PixelartProcessor
 
 def valid_scale(string):
     if 'x' not in string:
@@ -96,5 +96,8 @@ def cli_process():
             logging_handler=handler)
     processor.process()
 
-if __name__ == '__main__':
+def main():
     cli_process()
+
+if __name__ == '__main__':
+    main()
