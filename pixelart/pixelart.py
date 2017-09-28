@@ -348,7 +348,8 @@ class Application(tk.Frame):
         self.thread.start()
 
     def done_processing(self, block_report):
-        show_block_report(self, block_report)
+        self.show_block_report(block_report)
+        self.start_button['state'] = 'active'
 
     def exit_now(self):
 

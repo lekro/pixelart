@@ -281,8 +281,9 @@ class PixelartProcessor:
     def generate_report(self):
 
         names = np.array(list(self.colors.keys()))
+        names = names[self.neighbors]
         unique, counts = np.unique(names, return_counts=True)
-        return map(zip(unique, counts))
+        return dict(zip(unique, counts))
 
     def process(self):
 
