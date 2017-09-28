@@ -22,6 +22,12 @@ interpval = dict(nearest=Image.NEAREST,
                  bicubic=Image.BICUBIC,
                  lanczos=Image.LANCZOS)
 
+# Texture directories within jar file to
+# search...
+TEXTURE_DIR_GUESSES = [
+        'assets/minecraft/textures/blocks'
+]
+
 class PixelartProcessor:
 
     def __init__(self, textures_path, image_path, output_path,
@@ -110,6 +116,7 @@ class PixelartProcessor:
                 name, ext = os.path.splitext(fi)
                 if not namefilter.filter_file(name, ext):
                     continue
+                print([name, ext])
                 with open(os.path.join(self.textures_path, fi),
                           mode='rb') as f:
                     self.load_texture(f, name)
@@ -120,20 +127,44 @@ class PixelartProcessor:
             head, tail = os.path.split(self.textures_path)
             name, ext = os.path.splitext(tail)
 
-            if ext not in ['.zip', '.jar']:
-                # TODO accommodate other archive formats in python
+            # First check if it's a zip file
+            if zipfile.is_zipfile(self.textures_path):
+
+                # Now we're pretty sure this is a zip file.
+                # We can guess the location of the textures
+                with zipfile.ZipFile(self.textures_path, 'r') as fi:
+
+                    for info in fi.infolist():
+                        
+                        # If it's a directory, we don't really want it...
+                        if info.is_dir():
+                            continue
+
+                        # If it's not in our directory guesses, skip...
+                        # We don't want to include items and entities.
+                        ahead, atail = os.path.split(info.filename)
+                        if ahead not in TEXTURE_DIR_GUESSES:
+                            continue
+
+                        # Filter textures using the NameFilter, just
+                        # like with a normal file...
+                        aname, aext = os.path.splitext(atail)
+                        if not namefilter.filter_file(aname, aext):
+                            continue
+                        print([aname, aext])
+
+                        # Now that we're done with that,
+                        # actually try to open the file.
+                        with fi.open(info, mode='r') as texture_file:
+                            # Add this as a texture
+                            self.load_texture(texture_file, aname)
+
+            # Then we can check if it's a tar file of some description
+
+            # And our contingency plan is to fail!
+            else:
                 self.logger.critical("Unknown archive format %s!" % ext)
                 return False
-
-            # Now we're pretty sure this is a zip file.
-            # We can guess the location of the textures
-            with ZipFile(self.textures_path, 'r') as fi:
-                # TODO Find files based on guessed texture directory
-                for member_name in fi.namelist():
-                    # TODO filter this somehow.
-                    with fi.open(member_name) as texture_file:
-                        # Add this as a texture
-                        self.load_texture(texture_file)
 
 
         if len(self.colors) == 0:
