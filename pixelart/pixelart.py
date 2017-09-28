@@ -12,6 +12,19 @@ from processing import PixelartProcessor
 
 PATH_FORMATS = [str, bytes, os.PathLike, int]
 
+INTERP_DESCRIPTIONS = dict(
+        nearest='take the closest pixel (worst)',
+        bilinear='interpolate along lines',
+        bicubic='fit to cubic curves (default)',
+        lanczos='use a truncated sinc'
+)
+
+CSPACE_DESCRIPTIONS = dict(
+        RGB='red, green, blue (default)',
+        YCbCr='luma, chroma (color video)',
+        HSV='hue, saturation, brightness'
+)
+
 class BlockReportDialog(tk.Toplevel):
 
     def __init__(self, parent, textures, cols=3):
@@ -65,54 +78,107 @@ class OptionsDialog(tk.Toplevel):
 
         body = tk.Frame(self)
         self.grab_set()
+        self.options = options
 
         # Now actually create fields for settings
         # For Minkowski p-norm...
-        norm_var = tk.StringVar()
-        norm_var.set(str(options['p']))
-        norm_label = tk.Label(body, text='Minkowski p-norm, p=')
-        norm_input = tk.Entry(body, textvariable=norm_var)
-        norm_status = tk.Label(body)
-        norm_label.grid(row=0, column=0)
-        norm_input.grid(row=0, column=1)
-        norm_status.grid(row=0, column=2)
+        self.norm_var = tk.StringVar()
+        self.norm_var.set(str(options['p']))
+        self.norm_var.trace('w', self.validate_norm)
+        self.norm_label = tk.Label(body, text='Minkowski p-norm, p=')
+        self.norm_input = tk.Entry(body, width=10, textvariable=self.norm_var)
+        self.norm_status = tk.Label(body)
+        self.norm_label.grid(row=0, column=0, sticky='w')
+        self.norm_input.grid(row=0, column=1, sticky='w')
+        self.norm_status.grid(row=0, column=2, sticky='w')
 
         # For color space...
-        cspace_var = tk.StringVar()
-        cspace_var.set(options['colorspace'])
-        cspace_label = tk.Label(body, text='Color matching space')
-        cspace_input = tk.OptionMenu(body, cspace_var, 'RGB', 'YCbCr', 'HSV')
-        cspace_status = tk.Label(body)
-        cspace_label.grid(row=1, column=0)
-        cspace_input.grid(row=1, column=1)
-        cspace_status.grid(row=1, column=2)
+        self.cspace_var = tk.StringVar()
+        self.cspace_var.set(options['colorspace'])
+        self.cspace_var.trace('w', self.validate_option_menus)
+        self.cspace_label = tk.Label(body, text='Color matching space:')
+        self.cspace_input = tk.OptionMenu(body, self.cspace_var, 'RGB', 'YCbCr', 'HSV')
+        self.cspace_status = tk.Label(body)
+        self.cspace_label.grid(row=1, column=0, sticky='w')
+        self.cspace_input.grid(row=1, column=1, sticky='w')
+        self.cspace_status.grid(row=1, column=2, sticky='w')
 
         # For interpolation
-        interp_var = tk.StringVar()
-        interp_var.set(options['interp'])
-        interp_label = tk.Label(body, text='Interpolation method')
-        interp_input = tk.OptionMenu(body, interp_var, 'nearest', 'bilinear',
+        self.interp_var = tk.StringVar()
+        self.interp_var.set(options['interp'])
+        self.interp_var.trace('w', self.validate_option_menus)
+        self.interp_label = tk.Label(body, text='Interpolation method:')
+        self.interp_input = tk.OptionMenu(body, self.interp_var, 'nearest', 'bilinear',
                                      'bicubic', 'lanczos')
-        interp_status = tk.Label(body)
-        interp_label.grid(row=2, column=0)
-        interp_input.grid(row=2, column=1)
-        interp_status.grid(row=2, column=2)
+        self.interp_status = tk.Label(body)
+        self.interp_label.grid(row=2, column=0, sticky='w')
+        self.interp_input.grid(row=2, column=1, sticky='w')
+        self.interp_status.grid(row=2, column=2, sticky='w')
 
+        self.invalid_options = set()
 
         bottom_frame = tk.Frame(self)
         self.protocol("WM_DELETE_WINDOW", self.cancel)
 
-        set_button = tk.Button(bottom_frame, text='Set',
-                command=self.set)
+        self.set_button = tk.Button(bottom_frame, text='Set',
+                command=self.apply_options)
         cancel_button = tk.Button(bottom_frame, text='Cancel',
                 command=self.cancel)
         cancel_button.pack(side='right')
-        set_button.pack(side='right')
+        dummy_label = tk.Label(bottom_frame)
+        dummy_label.pack(side='left', fill='x', expand=1)
+        self.set_button.pack(side='right')
         bottom_frame.pack(side='bottom')
         body.pack(padx=5, pady=5, side='top')
 
-    def set(self, event=None):
+        # Validate initial values
+        self.validate_norm()
+        self.validate_option_menus()
+        self.check_options()
+
+    def validate_norm(self, *args):
+        val = self.norm_var.get()
+        try:
+            val = float(val)
+            self.invalid_options.discard('p')
+            self.norm_status['fg'] = 'black'
+            if val == 2.0:
+                self.norm_status['text'] = 'Euclidean (default)'
+            elif val == 1.0:
+                self.norm_status['text'] = 'Manhattan'
+            else:
+                self.norm_status['text'] = 'p=%.1f'%val
+            self.options['p'] = val
+
+        except:
+            # We can't convert this into a float. That means it must be invalid!
+            self.norm_status['fg'] = 'red'
+            self.norm_status['text'] = 'Must be a number'
+            self.invalid_options.add('p')
+        self.check_options()
+
+    def validate_option_menus(self, *args):
+
+        # Interpolation
+        interp = self.interp_var.get()
+        self.interp_status['text'] = INTERP_DESCRIPTIONS[interp]
+        self.options['interp'] = interp
+
+        # Color space
+        cspace = self.cspace_var.get()
+        self.cspace_status['text'] = CSPACE_DESCRIPTIONS[cspace]
+        self.options['colorspace'] = cspace
+
+
+    def check_options(self):
+        if len(self.invalid_options) > 0:
+            self.set_button['state'] = 'disabled'
+        else:
+            self.set_button['state'] = 'active'
+
+    def apply_options(self, event=None):
         # Set options in parent, then leave
+        self.parent.options = self.options
         self.cancel()
 
     def cancel(self, event=None):
