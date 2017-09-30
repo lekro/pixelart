@@ -4,7 +4,23 @@ import logging
 from logging import StreamHandler
 
 # Import from this package
-from .processing import PixelartProcessor
+from pixelart.processing import PixelartProcessor
+
+class CLIBlockReportCaller:
+    '''Used so the CLI can get a block report
+    from the processor, and directly save it to a
+    file.
+    '''
+
+    def __init__(self, path):
+        self.path = path
+
+    def done_processing(self, block_report):
+        with open(self.path, mode='w') as f:
+            for unique in block_report.keys():
+                numstr = ('%dx' % block_report[unique]).ljust(8)
+                f.write('%s%s\n' % (numstr, unique))
+
 
 def valid_scale(string):
     if 'x' not in string:
@@ -20,7 +36,8 @@ def valid_scale(string):
 
 def cli_process():
 
-    parser = argparse.ArgumentParser(description='Match pixels to textures')
+    parser = argparse.ArgumentParser(description='Match pixels to textures',
+                                     epilog='To run the gui, use pixelart-gui.')
 
     # Add positional arguments
     parser.add_argument('input', metavar='INPUT', type=str,
@@ -55,6 +72,7 @@ def cli_process():
                                 color of each texture. (default: \
                                 %(default)s)')
     parser.add_argument('-r', '--report', dest='report', type=str,
+                        default=None,
                         help='Path to output block report. This file will\
                                 contain numbers and types of blocks\
                                 (or textures) required to make the\
@@ -83,17 +101,24 @@ def cli_process():
 
     # Actually process arguments
     args = parser.parse_args(sys.argv[1:])
+
     
     # Create logging handler which goes to stdout
     handler = StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter(fmt='[%(levelname)s] %(message)s'))
     handler.setLevel(args.log_level)
+
+    # Instantiate the block report writer
+    if args.report is not None:
+        writer = CLIBlockReportCaller(args.report)
+    else:
+        writer = None
     # Instantiate PixelartProcessor
     processor = PixelartProcessor(args.textures, args.input, args.output,
             colorspace=args.colorspace, interp=args.interp,
             minkowski=args.p, image_scaling=args.scaling,
             texture_dimension=args.texture_dimension,
-            logging_handler=handler)
+            logging_handler=handler, ui_caller=writer)
     processor.process()
 
 def main():

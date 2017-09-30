@@ -1,5 +1,6 @@
 
-from pixelart import gui, cli
+from pixelart import gui
+from pixelart import cli
 
 def main():
     main_cli()

@@ -13,7 +13,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
         name='pixelart',
-        version='0.0.6',
+        version='0.1.0',
         description='Match images to minecraft textures',
         long_description=long_description,
         url='https://github.com/lekro/pixelart',
@@ -33,7 +33,7 @@ setup(
         extras_require={
             'faster nearest neighbors matching': ['scipy']
         },
-        python_requires='>=3',
+        python_requires='>=3.2',
         entry_points={
             'console_scripts': [
                 'pixelart=pixelart:main',

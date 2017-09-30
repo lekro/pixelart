@@ -7,7 +7,7 @@ import tkinter.filedialog as filedialog
 from threading import Thread
 
 # Import our own functions
-from .processing import PixelartProcessor
+from pixelart.processing import PixelartProcessor
 
 
 PATH_FORMATS = [str, bytes, os.PathLike, int]
@@ -148,7 +148,6 @@ class OptionsDialog(tk.Toplevel):
                 self.norm_status['text'] = 'Manhattan'
             else:
                 self.norm_status['text'] = 'p=%.1f'%val
-            self.options['p'] = val
 
         except:
             # We can't convert this into a float. That means it must be invalid!
@@ -162,12 +161,10 @@ class OptionsDialog(tk.Toplevel):
         # Interpolation
         interp = self.interp_var.get()
         self.interp_status['text'] = INTERP_DESCRIPTIONS[interp]
-        self.options['interp'] = interp
 
         # Color space
         cspace = self.cspace_var.get()
         self.cspace_status['text'] = CSPACE_DESCRIPTIONS[cspace]
-        self.options['colorspace'] = cspace
 
 
     def check_options(self):
@@ -178,6 +175,9 @@ class OptionsDialog(tk.Toplevel):
 
     def apply_options(self, event=None):
         # Set options in parent, then leave
+        self.options['colorspace'] = self.cspace_var.get()
+        self.options['interp'] = self.interp_var.get()
+        self.options['p'] = float(self.norm_var.get())
         self.parent.options = self.options
         self.cancel()
 
@@ -246,8 +246,8 @@ class Application(tk.Frame):
         self.cont.pack(side='top', fill='both', expand=1)
 
         self.texture_button = tk.Button(self.cont,
-                text='Select textures directory...',
-                command=self.pick_texture_dir)
+                text='Select textures...',
+                command=self.pick_textures)
         self.texture_button.grid(row=0,column=0)
 
         self.texture_status = tk.Label(self.cont,
@@ -381,21 +381,23 @@ class Application(tk.Frame):
             self.statusbar['fg'] = 'green'
             self.start_button['state'] = 'normal'
 
-    def pick_texture_dir(self):
+    def pick_textures(self):
 
-        texture_dir = None
+        texture_selection = None
 
-        texture_dir = filedialog.askdirectory()
-        if texture_dir is None or type(texture_dir) not in PATH_FORMATS or \
-                not os.path.isdir(texture_dir):
+        texture_selection = filedialog.askopenfilename(
+                parent=self.master,
+                filetypes=(('zip files', '*.zip *.jar'),
+                           ('all files', '*.*')))
+        if texture_selection is None or type(texture_selection) not in PATH_FORMATS:
             self.texture_status['text'] = 'Invalid texture directory!'
             self.texture_status['fg'] = 'red'
             self.textures_ready = False
             self.update_status()
             return
-        self.options['texture_path'] = texture_dir
+        self.options['texture_path'] = texture_selection
         self.texture_status['fg'] = 'green'
-        self.texture_status['text'] = texture_dir
+        self.texture_status['text'] = texture_selection
         self.textures_ready = True
         self.update_status()
 
