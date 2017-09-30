@@ -15,7 +15,7 @@ Linux
 
 - Install Python 3
 - Install ``numpy`` and ``Pillow``. 
-- Use ``pip`` to install, e.g. ``pip install pixelart-helper``
+- Use ``pip`` to install, e.g. ``pip install pixelart``
 - Use the command ``pixelart`` to launch the GUI.
 
 -------
@@ -26,14 +26,14 @@ Windows
 - Go to the start menu and open the *Anaconda Prompt*
 - Install ``numpy`` and ``Pillow``, by executing the command
   ``conda install numpy pillow``
-- Use ``pip`` to install, with the command ``pip install pixelart-helper``
+- Use ``pip`` to install, with the command ``pip install pixelart``
 - To use the script, use the command ``pixelart``
 
 =====
 Usage
 =====
 
-* Before using ``pixelart-helper``, make sure you have two things:
+* Before using ``pixelart``, make sure you have two things:
 
   - **Textures**: You can open your minecraft jar or texturepack
     zip directly, or you can extract the textures and show 
