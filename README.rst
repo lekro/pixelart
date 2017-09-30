@@ -29,6 +29,23 @@ Windows
 - Use ``pip`` to install, with the command ``pip install pixelart-helper``
 - To use the script, use the command ``pixelart``
 
+=====
+Usage
+=====
+
+* Before using ``pixelart-helper``, make sure you have two things:
+
+  - **Textures**: You can open your minecraft jar or texturepack
+    zip directly, or you can extract the textures and show 
+    ``pixelart-helper`` where they are.
+
+  - **Input image**: This is the image you want to convert. It should
+    be in some format ``Pillow`` understands.
+
+* To use the graphical user interface, use the command ``pixelart-gui``.
+  To pass arguments like any other shell program, use the command
+  ``pixelart``. If you require help with the latter, use ``pixelart -h``.
+
 ===============================
 Getting your Minecraft textures
 ===============================

@@ -12,11 +12,11 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-        name='pixelart-helper',
+        name='pixelart',
         version='0.0.6',
         description='Match images to minecraft textures',
         long_description=long_description,
-        url='https://github.com/lekro/pixelart-helper',
+        url='https://github.com/lekro/pixelart',
         author='lekro',
         author_email='kapuraya@gmail.com',
         license='MIT',
