@@ -12,8 +12,11 @@ in order to run this script.
 Windows
 -------
 
-- Install Python 3. Be sure to install ``Tcl`` and ``Tk``.
-- Open the python prompt.
+- Install Python 3. Be sure to install ``Tcl`` and ``Tk``,
+  if this appears in the installation, and to add Python
+  to your PATH. (there should be a checkbox)
+- Open ``cmd``. This can be done with the Start menu in
+  modern Windows versions, or with the *Run...* menu.
 - Install with ``pip`` by executing the command
   ``pip install pixelart``.
 - To use the gui, use the command ``pixelart-gui`` in the
