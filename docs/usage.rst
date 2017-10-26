@@ -40,7 +40,7 @@ actually use the script.
 - Run ``pixelart-gui`` in the python prompt/shell,
   wherever you ran the ``pip`` command.
 - Click *Select textures...* and pick your Minecraft
-  jar file.
+  jar file or pre-extracted image directory.
 - Click *Select image to pixelart...* and pick
   the image you wish to convert.
 - Optionally, scale the image by specifying scaling 

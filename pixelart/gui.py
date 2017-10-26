@@ -245,10 +245,18 @@ class Application(tk.Frame):
         self.cont = tk.Frame(self)
         self.cont.pack(side='top', fill='both', expand=1)
 
-        self.texture_button = tk.Button(self.cont,
-                text='Select textures...',
-                command=self.pick_textures)
-        self.texture_button.grid(row=0,column=0)
+        self.texture_frame = tk.Frame(self.cont)
+        self.texture_frame.grid(row=0, column=0)
+
+        self.texture_dir_button = tk.Button(self.texture_frame,
+                text='Select textures folder...',
+                command=self.pick_texture_dir)
+        self.texture_dir_button.grid(row=0,column=0)
+
+        self.texture_zip_button = tk.Button(self.texture_frame,
+                text='Select textures zip/jar...',
+                command=self.pick_texture_zip)
+        self.texture_zip_button.grid(row=1,column=0)
 
         self.texture_status = tk.Label(self.cont,
                 text='No textures selected!',
@@ -381,7 +389,25 @@ class Application(tk.Frame):
             self.statusbar['fg'] = 'green'
             self.start_button['state'] = 'normal'
 
-    def pick_textures(self):
+    def pick_texture_dir(self):
+
+        texture_selection = None
+
+        texture_selection = filedialog.askdirectory(
+                parent=self.master)
+        if texture_selection is None or type(texture_selection) not in PATH_FORMATS:
+            self.texture_status['text'] = 'Invalid texture directory!'
+            self.texture_status['fg'] = 'red'
+            self.textures_ready = False
+            self.update_status()
+            return
+        self.options['texture_path'] = texture_selection
+        self.texture_status['fg'] = 'green'
+        self.texture_status['text'] = texture_selection
+        self.textures_ready = True
+        self.update_status()
+
+    def pick_texture_zip(self):
 
         texture_selection = None
 
